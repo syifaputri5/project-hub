@@ -419,7 +419,7 @@ async function boot(id,quiet){
     const ds = dashState();
     if (!id && ds && ds!=='Create') { try { const c = await bitable.dashboard.getConfig(); id = c?.customConfig?.tableId || c?.dataConditions?.[0]?.tableId; } catch {} }
     try { await load(id); }
-    catch(e){ if (ds && /config mode|not support|permission/i.test(String(e?.message||e))) await loadFromBlockData(); else throw e; }
+    catch(e){ if (!HAS_API && /config mode|not support|permission/i.test(String(e?.message||e))) await loadFromBlockData(); else throw e; }
     render();
     let note = '';
     if (ds==='Create'||ds==='Config') { try { const pv = await bitable.dashboard.getPreviewData(projectCondition().cond); note = ` Data check: ${Math.max(0,(pv||[]).length-1)} rows.`; } catch(e){ note = ' Data check failed: '+esc(e?.message||e); } }
