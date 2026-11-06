@@ -342,9 +342,11 @@ document.addEventListener('click', async e=>{
   const pe=e.target.closest('[data-person]'); if(pe){S.person=S.person===pe.dataset.person?null:pe.dataset.person;render();return;}
   const lv=e.target.closest('[data-love]'); if(lv){ if(S.tab!=='love'){S.tab='love';S.love=lv.dataset.love;} else S.love=S.love===lv.dataset.love?null:lv.dataset.love; render(); return;}
   if(e.target.closest('#saveCfg')){ try{
-      let baseToken; try { baseToken = (await bitable.base.getSelection())?.baseId; } catch {}
-      const cond = { tableId:S.tableId, series:'COUNTA' }; if (baseToken) cond.baseToken = baseToken;
-      await bitable.dashboard.saveConfig({dataConditions:[cond],customConfig:{tableId:S.tableId,tableName:S.name}}); toast('Saved!');
+      const custom = {tableId:S.tableId,tableName:S.name};
+      const tries = [ {dataConditions:[],customConfig:custom}, {dataConditions:[{tableId:S.tableId}],customConfig:custom} ];
+      let ok=false, last;
+      for (const cfg of tries){ try { const r = await bitable.dashboard.saveConfig(cfg); if (r!==false){ ok=true; break; } } catch(err){ last=err; } }
+      toast(ok?'Saved!':'Could not save: '+(last?.message||last||'unknown'));
     }catch(err){ toast('Could not save: '+(err?.message||err)); } return; }
   const c=e.target.closest('[data-id],[data-req]');
   if(c){const tableId=c.dataset.id?S.tableId:S.reqId, recordId=c.dataset.id||c.dataset.req;
