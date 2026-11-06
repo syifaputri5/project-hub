@@ -341,7 +341,11 @@ document.addEventListener('click', async e=>{
   const st=e.target.closest('.stop'); if(st){S.open=+st.dataset.st;S.q='';render();return;}
   const pe=e.target.closest('[data-person]'); if(pe){S.person=S.person===pe.dataset.person?null:pe.dataset.person;render();return;}
   const lv=e.target.closest('[data-love]'); if(lv){ if(S.tab!=='love'){S.tab='love';S.love=lv.dataset.love;} else S.love=S.love===lv.dataset.love?null:lv.dataset.love; render(); return;}
-  if(e.target.closest('#saveCfg')){ try{ await bitable.dashboard.saveConfig({dataConditions:[{tableId:S.tableId}],customConfig:{tableId:S.tableId}}); toast('Saved to your dashboard!'); }catch(err){ toast('Could not save: '+(err?.message||err)); } return; }
+  if(e.target.closest('#saveCfg')){ try{
+      let baseToken; try { baseToken = (await bitable.base.getSelection())?.baseId; } catch {}
+      const cond = { tableId:S.tableId, series:'COUNTA' }; if (baseToken) cond.baseToken = baseToken;
+      await bitable.dashboard.saveConfig({dataConditions:[cond],customConfig:{tableId:S.tableId,tableName:S.name}}); toast('Saved!');
+    }catch(err){ toast('Could not save: '+(err?.message||err)); } return; }
   const c=e.target.closest('[data-id],[data-req]');
   if(c){const tableId=c.dataset.id?S.tableId:S.reqId, recordId=c.dataset.id||c.dataset.req;
     try{await bitable.ui.showRecordDetailDialog({tableId,recordId});}catch{try{await bitable.ui.switchToTable(tableId);}catch{toast('Open the table to see this one');}}}
@@ -356,7 +360,7 @@ async function boot(id,quiet){
     const ds = dashState();
     if (!id && ds && ds!=='Create') { try { const c = await bitable.dashboard.getConfig(); id = c?.customConfig?.tableId || c?.dataConditions?.[0]?.tableId; } catch {} }
     await load(id); render();
-    $('#cfg').innerHTML = (ds==='Create'||ds==='Config') ? `<div class="cfgbar"><span>Looks good? Pick the project table above, then save to place the hub on this dashboard.</span><div class="grow"></div><button id="saveCfg">Save to dashboard</button></div>` : '';
+    $('#cfg').innerHTML = (ds==='Create'||ds==='Config') ? `<div class="cfgbar"><span>Looks good? Pick the project table above, then save to place the hub here.</span><div class="grow"></div><button id="saveCfg">Save hub</button></div>` : '';
     if (ds) { try { await bitable.dashboard.setRendered(); } catch {} }
     if(quiet) toast('Fresh data loaded');
   }
