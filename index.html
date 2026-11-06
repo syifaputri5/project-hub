@@ -231,6 +231,40 @@ function showLogin(){
   $('#tag').textContent='Please sign in';
 }
 
+const PKEYS = ['title','status','pri','pic','team','health','risk','target','d3','d4','d6'];
+function toProject(id, get){
+  const status=String(get('status')??'').trim(), st=stageOf(status);
+  const dates={3:parseDate(get('d3')),4:parseDate(get('d4')),6:parseDate(get('d6'))};
+  return { id, title:String(get('title')??'').trim()||'Untitled project', status, st,
+    pri:(String(get('pri')??'').match(/P[0-3]/i)||[''])[0].toUpperCase(),
+    pics:String(get('pic')??'').split(/,\s*/).map(s=>s.trim()).filter(Boolean), team:String(get('team')??'').trim(),
+    health:String(get('health')??'').trim(), risk:String(get('risk')??'').trim(), target:parseDate(get('target')),
+    since: dates[st] || (st===5?dates[4]:null) };
+}
+// Data source for Lark App blocks: one row per project, grouped by the project fields.
+function projectCondition(){
+  const keys = PKEYS.filter(k=>S.F?.[k]);
+  return { keys, cond:{ tableId:S.tableId, groups: keys.map(k=>({ fieldId:S.F[k].id, mode:'integrated' })), series:'COUNTA' } };
+}
+// View mode inside a Lark App: base APIs are blocked, so rebuild projects from the saved data source.
+async function loadFromBlockData(){
+  const cfg = await bitable.dashboard.getConfig();
+  const keys = cfg?.customConfig?.keys; if (!keys?.length) throw new Error('Open the block settings and click Save hub once.');
+  S.tableId = cfg.customConfig.tableId; S.name = cfg.customConfig.tableName || 'Project Tracker';
+  S.tables = [{ id:S.tableId, name:S.name }];
+  $('#tablePick').innerHTML = `<option>${esc(S.name)}</option>`;
+  const data = await bitable.dashboard.getData();
+  const rows = (data||[]).filter(r=>Array.isArray(r) && r.length>=keys.length);
+  const body = rows.length && typeof rows[0][keys.length]?.value !== 'number' ? rows.slice(1) : rows;
+  S.P = [];
+  body.forEach((row,i)=>{
+    const val = k => { const it=row[keys.indexOf(k)]; return it ? (it.text ?? (it.value==null?'':String(it.value))) : ''; };
+    const n = Math.max(1, Number(row[keys.length]?.value)||1);
+    for (let c=0;c<n;c++) S.P.push(toProject('row'+i+'_'+c, val));
+  });
+  S.R = []; S.reqId = null; S.fromBlock = true;
+}
+
 async function load(tableId){
   S.tables = await API.tables();
   const pick = S.tables.find(t=>t.id===tableId) || S.tables.find(t=>t.id===ls('ph_table')) || S.tables.find(t=>/project tracker/i.test(t.name)) || S.tables[0];
@@ -241,16 +275,9 @@ async function load(tableId){
     pic:findField(M,'PIC','Owner','Assignee'), team:findField(M,'Request Team','Team','Division','Requestor','Requester'),
     health:findField(M,'Health'), risk:findField(M,'Blocker / Risk','Blocker','Risk'), target:findField(M,'Target Release','Target Go-Live','Target'),
     d3:findField(M,'Submitted to IT Date'), d4:findField(M,'IT Start Date'), d6:findField(M,'Deployment Date','Deploy Date','Go-Live Date') };
+  S.F = F;
   const g=(r,f)=>f?(r.fields[f.id]??''):'';
-  S.P = (await API.records(pick.id)).map(r=>{
-    const status=String(g(r,F.status)).trim(), st=stageOf(status);
-    const dates={3:parseDate(g(r,F.d3)),4:parseDate(g(r,F.d4)),6:parseDate(g(r,F.d6))};
-    return { id:r.id, title:String(g(r,F.title)).trim()||'Untitled project', status, st,
-      pri:(String(g(r,F.pri)).match(/P[0-3]/i)||[''])[0].toUpperCase(),
-      pics:String(g(r,F.pic)).split(/,\s*/).map(s=>s.trim()).filter(Boolean), team:String(g(r,F.team)).trim(),
-      health:String(g(r,F.health)).trim(), risk:String(g(r,F.risk)).trim(), target:parseDate(g(r,F.target)),
-      since: dates[st] || (st===5?dates[4]:null) };
-  });
+  S.P = (await API.records(pick.id)).map(r=>toProject(r.id, k=>g(r,F[k])));
   const rq = S.tables.find(t=>/request/i.test(t.name) && t.id!==S.tableId); S.reqId = rq?.id||null; S.R=[];
   if (rq) try {
     const m=await API.fields(rq.id);
@@ -366,14 +393,16 @@ document.addEventListener('click', async e=>{
   const pe=e.target.closest('[data-person]'); if(pe){S.person=S.person===pe.dataset.person?null:pe.dataset.person;render();return;}
   const lv=e.target.closest('[data-love]'); if(lv){ if(S.tab!=='love'){S.tab='love';S.love=lv.dataset.love;} else S.love=S.love===lv.dataset.love?null:lv.dataset.love; render(); return;}
   if(e.target.closest('#saveCfg')){ try{
-      const custom = {tableId:S.tableId,tableName:S.name};
-      const tries = [ {dataConditions:[],customConfig:custom}, {dataConditions:[{tableId:S.tableId}],customConfig:custom} ];
+      const { keys, cond } = projectCondition();
+      const custom = {tableId:S.tableId,tableName:S.name,keys};
+      const tries = [ {dataConditions:[cond],customConfig:custom}, {dataConditions:[{tableId:S.tableId,series:'COUNTA',groups:cond.groups.slice(0,2)}],customConfig:custom} ];
       let ok=false, last;
       for (const cfg of tries){ try { const r = await bitable.dashboard.saveConfig(cfg); if (r!==false){ ok=true; break; } } catch(err){ last=err; } }
       toast(ok?'Saved!':'Could not save: '+(last?.message||last||'unknown'));
     }catch(err){ toast('Could not save: '+(err?.message||err)); } return; }
   const c=e.target.closest('[data-id],[data-req]');
   if(c){const tableId=c.dataset.id?S.tableId:S.reqId, recordId=c.dataset.id||c.dataset.req;
+    if(S.fromBlock){ toast('Open the tracker table to edit this project'); return; }
     if(HAS_API){ if(CFG.baseUrl) window.open(`${CFG.baseUrl}${CFG.baseUrl.includes('?')?'&':'?'}table=${tableId}&record=${recordId}`,'_blank'); else toast('Ask the owner to set BASE_URL'); return; }
     try{await bitable.ui.showRecordDetailDialog({tableId,recordId});}catch{try{await bitable.ui.switchToTable(tableId);}catch{toast('Open the table to see this one');}}}
 });
@@ -389,8 +418,12 @@ async function boot(id,quiet){
     if (HAS_API && !CFG.loaded) { try { CFG = await j('/api/config'); CFG.loaded = true; } catch(e){ if (e instanceof NeedLogin) throw e; } }
     const ds = dashState();
     if (!id && ds && ds!=='Create') { try { const c = await bitable.dashboard.getConfig(); id = c?.customConfig?.tableId || c?.dataConditions?.[0]?.tableId; } catch {} }
-    await load(id); render();
-    $('#cfg').innerHTML = (ds==='Create'||ds==='Config') ? `<div class="cfgbar"><span>Looks good? Pick the project table above, then save to place the hub here.</span><div class="grow"></div><button id="saveCfg">Save hub</button></div>` : '';
+    try { await load(id); }
+    catch(e){ if (ds && /config mode|not support|permission/i.test(String(e?.message||e))) await loadFromBlockData(); else throw e; }
+    render();
+    let note = '';
+    if (ds==='Create'||ds==='Config') { try { const pv = await bitable.dashboard.getPreviewData(projectCondition().cond); note = ` Data check: ${Math.max(0,(pv||[]).length-1)} rows.`; } catch(e){ note = ' Data check failed: '+esc(e?.message||e); } }
+    $('#cfg').innerHTML = (ds==='Create'||ds==='Config') ? `<div class="cfgbar"><span>Looks good? Pick the project table above, then save to place the hub here.${note}</span><div class="grow"></div><button id="saveCfg">Save hub</button></div>` : '';
     if (ds) { try { await bitable.dashboard.setRendered(); } catch {} }
     if(quiet) toast('Fresh data loaded');
   }
