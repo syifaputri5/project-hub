@@ -248,12 +248,12 @@ function projectCondition(){
 }
 // View mode inside a Lark App: base APIs are blocked, so rebuild projects from the saved data source.
 async function loadFromBlockData(){
-  const cfg = await bitable.dashboard.getConfig();
+  let cfg; try { cfg = await bitable.dashboard.getConfig(); } catch(e){ throw new Error('[block config] '+(e?.message||e)); }
   const keys = cfg?.customConfig?.keys; if (!keys?.length) throw new Error('Open the block settings and click Save hub once.');
   S.tableId = cfg.customConfig.tableId; S.name = cfg.customConfig.tableName || 'Project Tracker';
   S.tables = [{ id:S.tableId, name:S.name }];
   $('#tablePick').innerHTML = `<option>${esc(S.name)}</option>`;
-  const data = await bitable.dashboard.getData();
+  let data; try { data = await bitable.dashboard.getData(); } catch(e){ throw new Error('[block data] '+(e?.message||e)); }
   const rows = (data||[]).filter(r=>Array.isArray(r) && r.length>=keys.length);
   const body = rows.length && typeof rows[0][keys.length]?.value !== 'number' ? rows.slice(1) : rows;
   S.P = [];
@@ -419,7 +419,7 @@ async function boot(id,quiet){
     const ds = dashState();
     if (!id && ds && ds!=='Create') { try { const c = await bitable.dashboard.getConfig(); id = c?.customConfig?.tableId || c?.dataConditions?.[0]?.tableId; } catch {} }
     try { await load(id); }
-    catch(e){ if (!HAS_API && /config mode|not support|permission/i.test(String(e?.message||e))) await loadFromBlockData(); else throw e; }
+    catch(e){ if (!HAS_API && /config mode|not support|permission/i.test(String(e?.message||e))) { try { await loadFromBlockData(); } catch(e2){ throw new Error('v6 '+(e2?.message||e2)); } } else throw e; }
     render();
     let note = '';
     if (ds==='Create'||ds==='Config') { try { const pv = await bitable.dashboard.getPreviewData(projectCondition().cond); note = ` Data check: ${Math.max(0,(pv||[]).length-1)} rows.`; } catch(e){ note = ' Data check failed: '+esc(e?.message||e); } }
