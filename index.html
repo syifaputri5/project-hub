@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbf8ff; --ink:#2c2546; --muted:#7b7396; --card:#ffffff; --line:#ece6fb;
+  --lav:#8b6cf6; --lav-soft:#efe8ff;
+  --s0:#9aa3b5; --s0b:#eef1f6;  /* backlog */
+  --s1:#f59f4b; --s1b:#fff1e3;  /* prd */
+  --s2:#e0b52e; --s2b:#fff8dc;  /* approved */
+  --s3:#4bb7a8; --s3b:#e1f7f3;  /* submitted to it */
+  --s4:#4a8df0; --s4b:#e5f0ff;  /* ongoing it */
+  --s5:#d26ad6; --s5b:#fbe9fc;  /* uat */
+  --s6:#3fae6b; --s6b:#e3f6ea;  /* deployed */
+  --off:#e05d7b; --offb:#fde8ee;
+  --shadow:0 6px 22px rgba(120,90,200,.10);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1b1726; --ink:#f1edff; --muted:#a9a2c4; --card:#262036; --line:#352d4a;
+    --lav-soft:#33295a; --s0b:#2c2f38; --s1b:#3a2b1c; --s2b:#38321a; --s3b:#183632; --s4b:#1a2b44; --s5b:#3a2040; --s6b:#1a3524; --offb:#3d1f29;
+    --shadow:0 6px 22px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1b1726; --ink:#f1edff; --muted:#a9a2c4; --card:#262036; --line:#352d4a;
+  --lav-soft:#33295a; --s0b:#2c2f38; --s1b:#3a2b1c; --s2b:#38321a; --s3b:#183632; --s4b:#1a2b44; --s5b:#3a2040; --s6b:#1a3524; --offb:#3d1f29;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:500 14px/1.45 Nunito,system-ui,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:14px 16px 0;border-bottom:1px solid var(--line)}
+.top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.logo{width:34px;height:34px;border-radius:11px;background:conic-gradient(from 200deg,#ffb3c7,#ffd98a,#9be7c4,#9cc8ff,#c9a8ff,#ffb3c7);display:grid;place-items:center;font-weight:900;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+h1{font-size:18px;margin:0;font-weight:900;letter-spacing:-.2px}
+.sub{color:var(--muted);font-size:12px}
+.grow{flex:1}
+select,button{font:inherit}
+.tablepick{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:6px 8px;max-width:220px}
+.btn-new{border:0;border-radius:999px;padding:8px 14px;font-weight:800;color:#fff;background:linear-gradient(135deg,#ff7aa2,#ff9a6b);box-shadow:0 4px 14px rgba(255,120,150,.35);cursor:pointer}
+.btn-new:hover{filter:brightness(1.05)}
+nav{display:flex;gap:4px;margin-top:12px;overflow-x:auto}
+nav button{border:0;background:none;color:var(--muted);padding:9px 12px;border-radius:12px 12px 0 0;font-weight:800;cursor:pointer;white-space:nowrap}
+nav button.on{color:var(--lav);background:var(--lav-soft)}
+main{padding:16px;max-width:1100px;margin:0 auto}
+.hello{border-radius:20px;padding:18px;background:linear-gradient(120deg,#ffe3ec,#fff2d6 35%,#dff7ec 65%,#e3edff);color:#2c2546;margin-bottom:16px;position:relative;overflow:hidden}
+.hello h2{margin:0 0 4px;font-size:20px;font-weight:900}
+.hello p{margin:0;color:#5b5275}
+.blob{position:absolute;border-radius:50%;opacity:.5}
+.grid{display:grid;gap:12px}
+.tiles{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+.tile{border-radius:18px;padding:14px;cursor:pointer;transition:transform .15s;border:2px solid transparent}
+.tile:hover{transform:translateY(-2px)}
+.tile.sel{border-color:currentColor}
+.tile .n{font-size:30px;font-weight:900;line-height:1}
+.tile .l{font-weight:800;margin-top:6px;font-size:12.5px}
+.panel{background:var(--card);border-radius:20px;padding:16px;box-shadow:var(--shadow);margin-top:16px}
+.panel h3{margin:0 0 12px;font-size:15px;font-weight:900}
+.bars .row{display:grid;grid-template-columns:110px 1fr 34px;gap:8px;align-items:center;margin:7px 0}
+.bar{height:12px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:720px){.two{grid-template-columns:1fr}}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.chip{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 11px 5px 5px;cursor:pointer;font-weight:800;color:var(--ink)}
+.chip .av{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:11px;color:#fff;font-weight:900}
+.chip .ct{font-size:11px;background:var(--lav-soft);color:var(--lav);border-radius:99px;padding:1px 7px}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.search{width:100%;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:9px 12px;margin-bottom:12px}
+.sect{margin:18px 0 8px;display:flex;align-items:center;gap:8px;font-weight:900}
+.sect .pill{font-size:12px}
+.cards{grid-template-columns:repeat(auto-fill,minmax(310px,1fr))}
+.card{background:var(--card);border-radius:18px;padding:14px;box-shadow:var(--shadow);border-left:6px solid var(--c);cursor:pointer;transition:transform .15s}
+.card:hover{transform:translateY(-2px)}
+.card .t{font-weight:900;font-size:14.5px;margin:0 0 6px}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.pill{border-radius:999px;padding:2px 9px;font-size:11px;font-weight:800;background:var(--cb);color:var(--c)}
+.pri{color:#fff}
+.stepper{display:flex;align-items:flex-start;margin:6px 0 8px}
+.step{flex:1;text-align:center;position:relative;font-size:10px;color:var(--muted);font-weight:700}
+.step .dot{width:18px;height:18px;border-radius:50%;margin:0 auto 4px;background:var(--line);border:2px solid var(--card);position:relative;z-index:1;display:grid;place-items:center;color:#fff;font-size:10px}
+.step::before{content:"";position:absolute;top:8px;left:-50%;width:100%;height:3px;background:var(--line)}
+.step:first-child::before{display:none}
+.step.done .dot{background:var(--sc)}
+.step.done::before{background:var(--sc)}
+.step.now .dot{background:var(--sc);box-shadow:0 0 0 4px var(--scb);width:20px;height:20px;margin-top:-1px}
+.step.now{color:var(--ink);font-weight:900}
+.foot{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:11.5px;flex-wrap:wrap}
+.risk{margin-top:6px;font-size:12px;background:var(--offb);color:var(--off);border-radius:10px;padding:6px 9px;font-weight:700}
+.empty{color:var(--muted);text-align:center;padding:30px}
+.guide ol{margin:0;padding:0;list-style:none;counter-reset:g}
+.guide li{counter-increment:g;display:grid;grid-template-columns:38px 1fr;gap:10px;margin:0 0 14px}
+.guide li::before{content:counter(g);width:34px;height:34px;border-radius:12px;display:grid;place-items:center;font-weight:900;color:#fff;background:var(--gc)}
+.guide b{display:block}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:12px;font-weight:800;display:none}
+.loading{display:grid;place-items:center;min-height:50vh;color:var(--muted);font-weight:800}
+.spin{width:38px;height:38px;border-radius:50%;border:4px solid var(--lav-soft);border-top-color:var(--lav);animation:sp 1s linear infinite;margin-bottom:10px}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <div class="logo">P</div>
+    <div>
+      <h1 id="title">Project Hub</h1>
+      <div class="sub" id="subtitle">Loading your projects...</div>
+    </div>
+    <div class="grow"></div>
+    <select class="tablepick" id="tablePick" title="Project table"></select>
+    <button class="btn-new" id="btnNew">+ New Request</button>
+  </div>
+  <nav id="tabs">
+    <button data-tab="overview" class="on">Overview</button>
+    <button data-tab="work">Our Work</button>
+    <button data-tab="requests">Requests</button>
+    <button data-tab="guide">Guide</button>
+  </nav>
+</header>
+<main id="main"><div class="loading"><div style="text-align:center"><div class="spin"></div>Gathering your projects...</div></div></main>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { bitable } from 'https://esm.sh/@lark-base-open/js-sdk@1.0.2';
+
+// ---------- stage model ----------
+const STAGES = [
+  { key:'backlog',  label:'Backlog',        v:'s0', match:/backlog|next to do|to do|new|request/i },
+  { key:'prd',      label:'PRD',            v:'s1', match:/prd|draft|in making|review/i },
+  { key:'approved', label:'Approved',       v:'s2', match:/approv/i },
+  { key:'sub',      label:'Submitted to IT',v:'s3', match:/submit|brief/i },
+  { key:'it',       label:'In Dev',         v:'s4', match:/ongoing it|develop|in dev|sit|qa/i },
+  { key:'uat',      label:'UAT',            v:'s5', match:/uat/i },
+  { key:'live',     label:'Deployed',       v:'s6', match:/deploy|live|done|released/i },
+];
+const OFF = /cancel|hold|drop|reject/i;
+const stageOf = s => {
+  if (!s) return -1;
+  if (OFF.test(s)) return -2;
+  // check more specific first
+  for (const i of [5,4,3,2,6,1,0]) if (STAGES[i].match.test(s)) return i;
+  return 0;
+};
+const PRI_COLORS = { P0:'#e8446c', P1:'#f5843c', P2:'#e2b42a', P3:'#5aa6e8' };
+const AV_COLORS = ['#ff7aa2','#8b6cf6','#3fae6b','#4a8df0','#f59f4b','#d26ad6','#4bb7a8','#e0b52e'];
+const GREETS = ['Hey there, superstar!','Hello, wonderful human!','Welcome back, legend!','Hi there, sunshine!'];
+
+// ---------- helpers ----------
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const toast = m => { const t=$('#toast'); t.textContent=m; t.style.display='block'; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display='none',2200); };
+const initials = n => n.split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase() || '?';
+const hash = s => [...s].reduce((a,c)=>(a*31+c.charCodeAt(0))>>>0,7);
+const parseDate = v => {
+  if (v == null || v === '') return null;
+  if (typeof v === 'number') return new Date(v);
+  const m = String(v).match(/(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);
+  return m ? new Date(+m[1], +m[2]-1, +m[3]) : null;
+};
+const fmtDate = d => d ? d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '';
+const daysSince = d => d ? Math.max(0, Math.floor((Date.now()-d.getTime())/86400000)) : null;
+
+function findField(metas, ...cands){
+  const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g,'');
+  for (const c of cands){ const f = metas.find(m => norm(m.name) === norm(c)); if (f) return f; }
+  for (const c of cands){ const f = metas.find(m => norm(m.name).includes(norm(c))); if (f) return f; }
+  return null;
+}
+
+async function readAll(table){
+  const out = []; let pageToken;
+  do {
+    const res = await table.getRecordsByPage({ pageSize: 200, pageToken, stringValue: true });
+    out.push(...res.records); pageToken = res.hasMore ? res.pageToken : undefined;
+  } while (pageToken);
+  return out;
+}
+
+// ---------- state ----------
+const state = { tab:'overview', person:'Everyone', stageFilter:null, q:'', projects:[], requests:[], tableName:'', requestTableId:null, tables:[] };
+
+async function loadProjects(tableId){
+  const table = await bitable.base.getTableById(tableId);
+  state.tableName = await table.getName();
+  const metas = await table.getFieldMetaList();
+  const F = {
+    title: findField(metas,'Project Title','Project Name','Title','Name'),
+    status: findField(metas,'Status'),
+    pri: findField(metas,'Priority'),
+    pic: findField(metas,'PIC','Owner','Assignee','BA'),
+    team: findField(metas,'Request Team','Team','Division','Requestor','Requester'),
+    health: findField(metas,'Health'),
+    risk: findField(metas,'Blocker / Risk','Blocker','Risk'),
+    target: findField(metas,'Target Release','Target Go-Live','Target'),
+    subDate: findField(metas,'Submitted to IT Date'),
+    itStart: findField(metas,'IT Start Date'),
+    deployDate: findField(metas,'Deployment Date','Deploy Date','Go-Live Date'),
+    entity: findField(metas,'Hidden Entity','Entity'),
+  };
+  const recs = await readAll(table);
+  const g = (r,f) => f ? (r.fields[f.id] ?? '') : '';
+  state.projects = recs.map(r => {
+    const status = String(g(r,F.status)).trim();
+    const pri = (String(g(r,F.pri)).match(/P[0-3]/i)||[''])[0].toUpperCase();
+    const st = stageOf(status);
+    const dates = { 3: parseDate(g(r,F.subDate)), 4: parseDate(g(r,F.itStart)), 6: parseDate(g(r,F.deployDate)) };
+    const since = dates[st] || (st===5 ? dates[4] : null);
+    return {
+      id: r.recordId,
+      title: String(g(r,F.title)).trim() || 'Untitled project',
+      status, st, pri,
+      pics: String(g(r,F.pic)).split(/,\s*/).map(s=>s.trim()).filter(Boolean),
+      team: String(g(r,F.team)).trim(),
+      health: String(g(r,F.health)).trim(),
+      risk: String(g(r,F.risk)).trim(),
+      target: parseDate(g(r,F.target)),
+      dates, since,
+    };
+  });
+  state.tableId = tableId;
+}
+
+async function loadRequests(){
+  const meta = state.tables.find(t => /request/i.test(t.name) && t.id !== state.tableId);
+  state.requestTableId = meta?.id || null;
+  state.requests = [];
+  if (!meta) return;
+  try {
+    const table = await bitable.base.getTableById(meta.id);
+    const metas = await table.getFieldMetaList();
+    const F = {
+      title: findField(metas,'Project Title','Request Title','Title','Name'),
+      type: findField(metas,'Request Type','Type'),
+      team: findField(metas,'Team / Division','Team','Division'),
+      by: findField(metas,'Requester','Requestor','Submitted By','Created By'),
+      date: findField(metas,'Request Date','Submitted On','Created Time','Created At','Date'),
+    };
+    const recs = await readAll(table);
+    const g = (r,f) => f ? (r.fields[f.id] ?? '') : '';
+    state.requests = recs.map(r => ({
+      id:r.recordId, title:String(g(r,F.title)).trim()||'Untitled request', type:String(g(r,F.type)).trim(),
+      team:String(g(r,F.team)).trim(), by:String(g(r,F.by)).trim(), date:parseDate(g(r,F.date))
+    })).sort((a,b)=>(b.date?.getTime()||0)-(a.date?.getTime()||0));
+  } catch(e){ console.warn('requests', e); }
+}
+
+// ---------- renderers ----------
+const stageVars = i => i===-2 ? {c:'var(--off)',b:'var(--offb)'} : i<0 ? {c:'var(--s0)',b:'var(--s0b)'} : {c:`var(--${STAGES[i].v})`, b:`var(--${STAGES[i].v}b)`};
+
+function stepper(p){
+  return `<div class="stepper">${STAGES.map((s,i)=>{
+    const cls = p.st===-2 ? '' : i < p.st ? 'done' : i===p.st ? 'now' : '';
+    return `<div class="step ${cls}" style="--sc:var(--${s.v});--scb:var(--${s.v}b)"><div class="dot">${i<p.st&&p.st>=0?'&#10003;':''}</div>${s.label}${p.dates[i]?`<div>${fmtDate(p.dates[i]).replace(/ \d{4}$/,'')}</div>`:''}</div>`;
+  }).join('')}</div>`;
+}
+
+function card(p){
+  const v = stageVars(p.st);
+  const days = daysSince(p.since);
+  const tgt = p.target ? daysSince(p.target) : null;
+  const late = p.target && p.st!==6 && p.target.getTime() < Date.now();
+  return `<div class="card" style="--c:${v.c}" data-id="${p.id}">
+    <p class="t">${esc(p.title)}</p>
+    <div class="meta">
+      <span class="pill" style="--c:${v.c};--cb:${v.b}">${esc(p.status||'No status')}</span>
+      ${p.pri?`<span class="pill pri" style="background:${PRI_COLORS[p.pri]}">${p.pri}</span>`:''}
+      ${days!=null?`<span class="pill" style="--c:var(--lav);--cb:var(--lav-soft)">${days} day${days===1?'':'s'} in ${esc(STAGES[p.st]?.label||p.status)}</span>`:''}
+      ${p.health&&!/on track/i.test(p.health)?`<span class="pill" style="--c:var(--off);--cb:var(--offb)">${esc(p.health)}</span>`:''}
+    </div>
+    ${p.st===-2?'':stepper(p)}
+    ${p.risk?`<div class="risk">${esc(p.risk)}</div>`:''}
+    <div class="foot" style="margin-top:8px">
+      <span>${p.pics.length?esc(p.pics.join(', ')):'No PIC yet'}${p.team?` &middot; ${esc(p.team)}`:''}</span>
+      ${p.target?`<span style="${late?'color:var(--off);font-weight:800':''}">Target ${fmtDate(p.target)}${late?' (overdue)':''}</span>`:''}
+    </div>
+  </div>`;
+}
+
+function hello(){
+  const live = state.projects.filter(p=>p.st===6).length;
+  const active = state.projects.filter(p=>p.st>=1&&p.st<=5).length;
+  return `<div class="hello">
+    <span class="blob" style="width:120px;height:120px;right:-30px;top:-40px;background:#ffc6d8"></span>
+    <span class="blob" style="width:80px;height:80px;right:70px;bottom:-40px;background:#c9e7ff"></span>
+    <h2>${GREETS[new Date().getDay()%GREETS.length]}</h2>
+    <p><b>${active}</b> projects are moving right now and <b>${live}</b> have made it all the way to production. Keep it up!</p>
+  </div>`;
+}
+
+function renderOverview(){
+  const P = state.projects;
+  const counts = STAGES.map((s,i)=>P.filter(p=>p.st===i).length);
+  const off = P.filter(p=>p.st===-2).length;
+  const tiles = STAGES.map((s,i)=>`<div class="tile" data-stage="${i}" style="background:var(--${s.v}b);color:var(--${s.v})"><div class="n">${counts[i]}</div><div class="l">${s.label}</div></div>`).join('')
+    + `<div class="tile" data-stage="-2" style="background:var(--offb);color:var(--off)"><div class="n">${off}</div><div class="l">On Hold / Cancelled</div></div>`;
+  const pri = ['P0','P1','P2','P3'].map(k=>[k,P.filter(p=>p.pri===k).length]);
+  const maxP = Math.max(1,...pri.map(x=>x[1]));
+  const people = peopleCounts().slice(1,8); const maxW = Math.max(1,...people.map(x=>x[1]));
+  const soon = P.filter(p=>p.target&&p.st!==6&&p.st!==-2).sort((a,b)=>a.target-b.target).slice(0,5);
+  return hello() + `<div class="grid tiles">${tiles}</div>
+  <div class="two">
+    <div class="panel"><h3>Priority mix</h3><div class="bars">${pri.map(([k,n])=>`<div class="row"><span><span class="pill pri" style="background:${PRI_COLORS[k]}">${k}</span></span><div class="bar"><i style="width:${n/maxP*100}%;background:${PRI_COLORS[k]}"></i></div><b>${n}</b></div>`).join('')}</div></div>
+    <div class="panel"><h3>Who's carrying what</h3><div class="bars">${people.map(([n,c])=>`<div class="row"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(n)}</span><div class="bar"><i style="width:${c/maxW*100}%;background:${AV_COLORS[hash(n)%AV_COLORS.length]}"></i></div><b>${c}</b></div>`).join('')||'<div class="empty">No PIC assigned yet</div>'}</div></div>
+  </div>
+  <div class="panel"><h3>Coming up next (by target release)</h3>${soon.length?`<div class="grid cards">${soon.map(card).join('')}</div>`:'<div class="empty">No target release dates set yet. Add one to see it here.</div>'}</div>`;
+}
+
+function peopleCounts(){
+  const m = new Map();
+  for (const p of state.projects) for (const n of (p.pics.length?p.pics:['Unassigned'])) m.set(n,(m.get(n)||0)+1);
+  return [['Everyone', state.projects.length], ...[...m].sort((a,b)=>b[1]-a[1])];
+}
+
+function renderWork(){
+  const chips = peopleCounts().map(([n,c])=>`<button class="chip ${state.person===n?'on':''}" data-person="${esc(n)}">${n==='Everyone'?'':`<span class="av" style="background:${AV_COLORS[hash(n)%AV_COLORS.length]}">${initials(n)}</span>`}${n==='Everyone'?'&nbsp;Everyone':esc(n.split(' ')[0])}<span class="ct">${c}</span></button>`).join('');
+  let P = state.projects.filter(p=> state.person==='Everyone' || (state.person==='Unassigned'?!p.pics.length:p.pics.includes(state.person)));
+  if (state.stageFilter!=null) P = P.filter(p=>p.st===state.stageFilter);
+  if (state.q) P = P.filter(p=>(p.title+' '+p.status+' '+p.team).toLowerCase().includes(state.q.toLowerCase()));
+  const order = [5,4,3,2,1,0,6,-2,-1];
+  const groups = order.map(i=>[i,P.filter(p=>p.st===i).sort((a,b)=>(a.pri||'P9').localeCompare(b.pri||'P9'))]).filter(g=>g[1].length);
+  const who = state.person==='Everyone'?'Everyone\'s work':`${esc(state.person)}'s work`;
+  return `<div class="chips">${chips}</div>
+    <input class="search" id="q" placeholder="Search projects, status or team..." value="${esc(state.q)}">
+    ${state.stageFilter!=null?`<div class="chips"><button class="chip on" id="clearStage">Showing ${state.stageFilter===-2?'On Hold / Cancelled':STAGES[state.stageFilter].label} only &times;</button></div>`:''}
+    <div class="sub">${who}: ${P.length} project${P.length===1?'':'s'}</div>
+    ${groups.map(([i,list])=>{const v=stageVars(i);return `<div class="sect"><span class="pill" style="--c:${v.c};--cb:${v.b}">${i===-2?'On Hold / Cancelled':i===-1?'No status':STAGES[i].label}</span><span class="sub">${list.length}</span></div><div class="grid cards">${list.map(card).join('')}</div>`}).join('') || '<div class="empty">Nothing here yet. Time for a coffee break?</div>'}`;
+}
+
+function renderRequests(){
+  if (!state.requestTableId) return '<div class="panel empty">No request table found in this base.</div>';
+  const R = state.requests;
+  const types = [...new Set(R.map(r=>r.type).filter(Boolean))];
+  const tc = ['#ff7aa2','#8b6cf6','#4bb7a8','#f59f4b','#4a8df0'];
+  return `<div class="grid tiles">
+    <div class="tile" style="background:var(--lav-soft);color:var(--lav)"><div class="n">${R.length}</div><div class="l">Total requests</div></div>
+    ${types.map((t,i)=>`<div class="tile" style="background:${tc[i%tc.length]}22;color:${tc[i%tc.length]}"><div class="n">${R.filter(r=>r.type===t).length}</div><div class="l">${esc(t)}</div></div>`).join('')}
+  </div>
+  <div class="panel"><h3>Latest requests</h3>
+    ${R.length?`<div class="grid cards">${R.slice(0,30).map((r,i)=>`<div class="card" style="--c:${tc[Math.max(0,types.indexOf(r.type))%tc.length]}" data-req="${r.id}"><p class="t">${esc(r.title)}</p><div class="meta">${r.type?`<span class="pill" style="--c:var(--lav);--cb:var(--lav-soft)">${esc(r.type)}</span>`:''}${r.team?`<span class="pill" style="--c:var(--s3);--cb:var(--s3b)">${esc(r.team)}</span>`:''}</div><div class="foot"><span>${esc(r.by)}</span><span>${fmtDate(r.date)}</span></div></div>`).join('')}</div>`:'<div class="empty">No requests yet. Be the first!</div>'}
+  </div>`;
+}
+
+function renderGuide(){
+  const steps = [
+    ['Requester','Click <b>+ New Request</b>, fill in the form and attach your BRD. That is all, the BA team takes it from here.','#ff7aa2'],
+    ['Lead BA','Review new requests, set the <b>Priority (P0 to P3)</b> and assign a <b>PIC</b>. The project moves to Backlog or Next To Do.','#f59f4b'],
+    ['BA','Write the PRD. Move the status to <b>Ongoing PRD</b>, then <b>PRD Done</b> once it is ready for review.','#e0b52e'],
+    ['Approval','After sign-off, set the status to <b>Approved</b>. The PRD version gets locked in.','#4bb7a8'],
+    ['Hand-off to IT','Set the status to <b>Submitted to IT</b>. The submitted date and the PRD version update automatically.','#4a8df0'],
+    ['IT and UAT','IT builds it (<b>Ongoing IT</b>), then the business tests it in <b>UAT</b>.','#d26ad6'],
+    ['Go live','Set <b>Deployed</b> with the deployment date. Celebrate!','#3fae6b'],
+  ];
+  return `<div class="panel guide"><h3>How a project travels, start to finish</h3><ol>${steps.map(([t,d,c])=>`<li style="--gc:${c}"><div><b>${t}</b>${d}</div></li>`).join('')}</ol></div>
+  <div class="panel"><h3>Little tips</h3><div class="sub" style="font-size:13px">Click any card to jump to its record. Click a colored tile on Overview to filter Our Work by stage. Keep <b>Target Release</b> and <b>Blocker / Risk</b> filled so the board stays honest.</div></div>`;
+}
+
+function render(){
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===state.tab));
+  const main = $('#main');
+  main.innerHTML = state.tab==='overview'?renderOverview():state.tab==='work'?renderWork():state.tab==='requests'?renderRequests():renderGuide();
+  const title = state.tableName.replace(/\s*-\s*Project Tracker/i,'').trim();
+  $('#title').textContent = (title && title!==state.tableName ? title+' ' : '') + 'Project Hub';
+  $('#subtitle').textContent = `${state.projects.length} projects · live from "${state.tableName}"`;
+  const q = $('#q'); if (q){ q.oninput = e=>{ state.q=e.target.value; const pos=e.target.selectionStart; render(); const n=$('#q'); n.focus(); n.setSelectionRange(pos,pos); }; }
+}
+
+// ---------- events ----------
+document.addEventListener('click', async e=>{
+  const tab = e.target.closest('nav button'); if (tab){ state.tab=tab.dataset.tab; render(); return; }
+  const chip = e.target.closest('[data-person]'); if (chip){ state.person=chip.dataset.person; render(); return; }
+  const tile = e.target.closest('[data-stage]'); if (tile){ state.stageFilter=+tile.dataset.stage; state.person='Everyone'; state.tab='work'; render(); return; }
+  if (e.target.closest('#clearStage')){ state.stageFilter=null; render(); return; }
+  const c = e.target.closest('[data-id],[data-req]');
+  if (c){
+    const tableId = c.dataset.id ? state.tableId : state.requestTableId; const rid = c.dataset.id || c.dataset.req;
+    try { await bitable.ui.showRecordDetailDialog({ tableId, recordId: rid }); }
+    catch { try { await bitable.ui.switchToTable(tableId); toast('Opened the table for you'); } catch { toast('Open the table to see this record'); } }
+  }
+});
+$('#btnNew').onclick = async ()=>{
+  const id = state.requestTableId || state.tableId;
+  try { await bitable.ui.switchToTable(id); toast('Taking you to the request form table...'); } catch { toast('Open the request form from the base sidebar'); }
+};
+$('#tablePick').onchange = async e=>{ localStorageSafe('set', e.target.value); await boot(e.target.value); };
+
+function localStorageSafe(op, v){ try { return op==='set' ? localStorage.setItem('ph_table', v) : localStorage.getItem('ph_table'); } catch { return null; } }
+
+async function boot(pref){
+  try {
+    state.tables = await bitable.base.getTableMetaList();
+    const saved = pref || localStorageSafe('get');
+    const pick = state.tables.find(t=>t.id===saved) || state.tables.find(t=>/project tracker/i.test(t.name)) || state.tables[0];
+    $('#tablePick').innerHTML = state.tables.map(t=>`<option value="${t.id}" ${t.id===pick.id?'selected':''}>${esc(t.name)}</option>`).join('');
+    await loadProjects(pick.id);
+    await loadRequests();
+    render();
+  } catch(err){
+    console.error(err);
+    $('#main').innerHTML = `<div class="panel empty"><b>Could not read the base.</b><br>Open this page as a Base extension inside Lark so it can read your tables.<br><span class="sub">${esc(err?.message||err)}</span></div>`;
+  }
+}
+
+boot();
+try { bitable.base.onRecordModify?.(()=>boot(state.tableId)); bitable.base.onRecordAdd?.(()=>boot(state.tableId)); } catch {}
+</script>
+</body>
+</html>
