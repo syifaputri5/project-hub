@@ -207,22 +207,45 @@ async function readAll(table){ const out=[]; let pageToken; do { const r=await t
 
 const S = { tab:'journey', open:null, person:null, love:null, q:'', P:[], R:[], tables:[], tableId:null, reqId:null, name:'' };
 
+// ---------- data adapter: inside Lark (SDK) or on the standalone website (our API + Lark login) ----------
+const IN_FRAME = (()=>{ try { return window.top !== window; } catch { return true; } })();
+const HAS_API = !IN_FRAME && !/github\.io$/.test(location.hostname);
+class NeedLogin extends Error {}
+async function j(u){ const r=await fetch(u,{credentials:'same-origin'}); if(r.status===401) throw new NeedLogin('login'); if(!r.ok) throw new Error((await r.text()).slice(0,200)); return r.json(); }
+let CFG = {};
+const API = HAS_API ? {
+  tables: () => j('/api/tables'),
+  fields: t => j('/api/fields?table='+encodeURIComponent(t)),
+  records: t => j('/api/records?table='+encodeURIComponent(t)),
+} : {
+  tables: async () => (await bitable.base.getTableMetaList()).map(t=>({id:t.id,name:t.name})),
+  fields: async t => (await (await bitable.base.getTableById(t)).getFieldMetaList()).map(f=>({id:f.id,name:f.name})),
+  records: async t => (await readAll(await bitable.base.getTableById(t))).map(r=>({id:r.recordId,fields:r.fields})),
+};
+function showLogin(){
+  $('#main').innerHTML = `<div class="loading"><div style="max-width:380px">
+    <div class="sun" style="width:64px;height:64px;margin:0 auto 14px;border-radius:20px"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" style="width:34px;height:34px"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></div>
+    <h2 class="fred" style="margin:0 0 6px;color:var(--ink)">Welcome to Project Hub</h2>
+    <p style="margin:0 0 16px">Sign in with your Lark account to see the projects you have access to.</p>
+    <a class="newbtn" href="/api/login" style="display:inline-block;text-decoration:none">Sign in with Lark</a></div></div>`;
+  $('#tag').textContent='Please sign in';
+}
+
 async function load(tableId){
-  S.tables = await bitable.base.getTableMetaList();
+  S.tables = await API.tables();
   const pick = S.tables.find(t=>t.id===tableId) || S.tables.find(t=>t.id===ls('ph_table')) || S.tables.find(t=>/project tracker/i.test(t.name)) || S.tables[0];
   S.tableId = pick.id; S.name = pick.name;
   $('#tablePick').innerHTML = S.tables.map(t=>`<option value="${t.id}" ${t.id===pick.id?'selected':''}>${esc(t.name)}</option>`).join('');
-  const table = await bitable.base.getTableById(pick.id);
-  const M = await table.getFieldMetaList();
+  const M = await API.fields(pick.id);
   const F = { title:findField(M,'Project Title','Project Name','Title','Name'), status:findField(M,'Status'), pri:findField(M,'Priority'),
     pic:findField(M,'PIC','Owner','Assignee'), team:findField(M,'Request Team','Team','Division','Requestor','Requester'),
     health:findField(M,'Health'), risk:findField(M,'Blocker / Risk','Blocker','Risk'), target:findField(M,'Target Release','Target Go-Live','Target'),
     d3:findField(M,'Submitted to IT Date'), d4:findField(M,'IT Start Date'), d6:findField(M,'Deployment Date','Deploy Date','Go-Live Date') };
   const g=(r,f)=>f?(r.fields[f.id]??''):'';
-  S.P = (await readAll(table)).map(r=>{
+  S.P = (await API.records(pick.id)).map(r=>{
     const status=String(g(r,F.status)).trim(), st=stageOf(status);
     const dates={3:parseDate(g(r,F.d3)),4:parseDate(g(r,F.d4)),6:parseDate(g(r,F.d6))};
-    return { id:r.recordId, title:String(g(r,F.title)).trim()||'Untitled project', status, st,
+    return { id:r.id, title:String(g(r,F.title)).trim()||'Untitled project', status, st,
       pri:(String(g(r,F.pri)).match(/P[0-3]/i)||[''])[0].toUpperCase(),
       pics:String(g(r,F.pic)).split(/,\s*/).map(s=>s.trim()).filter(Boolean), team:String(g(r,F.team)).trim(),
       health:String(g(r,F.health)).trim(), risk:String(g(r,F.risk)).trim(), target:parseDate(g(r,F.target)),
@@ -230,9 +253,9 @@ async function load(tableId){
   });
   const rq = S.tables.find(t=>/request/i.test(t.name) && t.id!==S.tableId); S.reqId = rq?.id||null; S.R=[];
   if (rq) try {
-    const t=await bitable.base.getTableById(rq.id), m=await t.getFieldMetaList();
+    const m=await API.fields(rq.id);
     const RF={title:findField(m,'Project Title','Request Title','Title','Name'),type:findField(m,'Request Type','Type'),team:findField(m,'Team / Division','Team','Division'),by:findField(m,'Requester','Requestor','Submitted By','Created By'),date:findField(m,'Request Date','Submitted On','Created Time','Created At','Date')};
-    S.R=(await readAll(t)).map(r=>({id:r.recordId,title:String(g(r,RF.title)).trim()||'Untitled request',type:String(g(r,RF.type)).trim(),team:String(g(r,RF.team)).trim(),by:String(g(r,RF.by)).trim(),date:parseDate(g(r,RF.date))})).sort((a,b)=>(b.date||0)-(a.date||0));
+    S.R=(await API.records(rq.id)).map(r=>({id:r.id,title:String(g(r,RF.title)).trim()||'Untitled request',type:String(g(r,RF.type)).trim(),team:String(g(r,RF.team)).trim(),by:String(g(r,RF.by)).trim(),date:parseDate(g(r,RF.date))})).sort((a,b)=>(b.date||0)-(a.date||0));
   } catch(e){ console.warn(e); }
 }
 
@@ -332,6 +355,7 @@ function render(){
   $('#main').innerHTML = S.tab==='journey'?viewJourney():S.tab==='crew'?viewCrew():S.tab==='love'?viewLove():viewInbox();
   const base=S.name.replace(/\s*-\s*project tracker/i,'').trim();
   $('#title').textContent=(base&&base!==S.name?base+' ':'')+'Project Hub';
+  document.title=$('#title').textContent;
   $('#tag').textContent=`${S.P.length} projects · live`;
   const q=$('#q'); if(q) q.oninput=e=>{S.q=e.target.value;const pos=e.target.selectionStart;render();const n=$('#q');n.focus();n.setSelectionRange(pos,pos);};
 }
@@ -350,15 +374,19 @@ document.addEventListener('click', async e=>{
     }catch(err){ toast('Could not save: '+(err?.message||err)); } return; }
   const c=e.target.closest('[data-id],[data-req]');
   if(c){const tableId=c.dataset.id?S.tableId:S.reqId, recordId=c.dataset.id||c.dataset.req;
+    if(HAS_API){ if(CFG.baseUrl) window.open(`${CFG.baseUrl}${CFG.baseUrl.includes('?')?'&':'?'}table=${tableId}&record=${recordId}`,'_blank'); else toast('Ask the owner to set BASE_URL'); return; }
     try{await bitable.ui.showRecordDetailDialog({tableId,recordId});}catch{try{await bitable.ui.switchToTable(tableId);}catch{toast('Open the table to see this one');}}}
 });
-$('#fab').onclick=async()=>{try{await bitable.ui.switchToTable(S.reqId||S.tableId);toast('Off to the request table!');}catch{toast('Open the request form from the sidebar');}};
+$('#fab').onclick=async()=>{
+  if(HAS_API){ const u=CFG.formUrl||CFG.baseUrl; if(u) window.open(u,'_blank'); else toast('Ask the owner to set FORM_URL'); return; }
+  try{await bitable.ui.switchToTable(S.reqId||S.tableId);toast('Off to the request table!');}catch{toast('Open the request form from the sidebar');}};
 $('#refresh').onclick=()=>boot(S.tableId,true);
 $('#tablePick').onchange=e=>{ls('ph_table',e.target.value);boot(e.target.value);};
 
-function dashState(){ try { return bitable.dashboard?.state || null; } catch { return null; } }
+function dashState(){ if (HAS_API) return null; try { return bitable.dashboard?.state || null; } catch { return null; } }
 async function boot(id,quiet){
   try{
+    if (HAS_API && !CFG.loaded) { try { CFG = await j('/api/config'); CFG.loaded = true; } catch(e){ if (e instanceof NeedLogin) throw e; } }
     const ds = dashState();
     if (!id && ds && ds!=='Create') { try { const c = await bitable.dashboard.getConfig(); id = c?.customConfig?.tableId || c?.dataConditions?.[0]?.tableId; } catch {} }
     await load(id); render();
@@ -366,7 +394,9 @@ async function boot(id,quiet){
     if (ds) { try { await bitable.dashboard.setRendered(); } catch {} }
     if(quiet) toast('Fresh data loaded');
   }
-  catch(err){ console.error(err); $('#main').innerHTML=`<div class="empty"><b>Could not read the base.</b><br>Open this page as a Base extension inside Lark.<br><small>${esc(err?.message||err)}</small></div>`; }
+  catch(err){
+    if (err instanceof NeedLogin) { showLogin(); return; }
+    console.error(err); $('#main').innerHTML=`<div class="empty"><b>Could not read the base.</b><br>${HAS_API?'The server could not reach Lark. Try signing in again.':'Open this page inside Lark.'}<br><small>${esc(err?.message||err)}</small>${HAS_API?'<br><br><a class="newbtn" href="/api/login" style="text-decoration:none;display:inline-block">Sign in again</a>':''}</div>`; }
 }
 boot();
 </script>

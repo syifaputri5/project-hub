@@ -1,0 +1,6 @@
+{
+  "name": "project-hub",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=18" }
+}
